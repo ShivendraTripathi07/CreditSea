@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import Api from './common';
 
 const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const navigate = useNavigate();
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Email:', email);
-        console.log('Password:', password);
-        // Add login logic here
+
+        try {
+            const res = await fetch(Api.login.url, {
+                method: Api.login.method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                localStorage.setItem('token', data.token); // ✅ Save token for future requests
+                navigate('/');
+            } else {
+                alert(data.message || "Login failed");
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+            alert("Something went wrong!");
+        }
     };
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">

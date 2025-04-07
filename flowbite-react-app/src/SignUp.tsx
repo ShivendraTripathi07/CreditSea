@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import Api from './common';
+import { useNavigate } from 'react-router-dom';
 
 const SignupPage: React.FC = () => {
+    const navigate = useNavigate()
     const [formData, setFormData] = useState({
         fullName: '',
         email: '',
@@ -9,15 +12,60 @@ const SignupPage: React.FC = () => {
         role: 'user',
     });
 
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Add validation & backend call here
-        console.log('Signup data:', formData);
+        setError('');
+        setSuccess('');
+
+        if (formData.password !== formData.confirmPassword) {
+            setError('Passwords do not match');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const res = await fetch(Api.signUp.url, {
+                method: Api.signUp.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    password: formData.password,
+                    role: formData.role,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || 'Signup failed');
+            }
+
+            setSuccess('Account created successfully!');
+            setFormData({
+                fullName: '',
+                email: '',
+                password: '',
+                confirmPassword: '',
+                role: 'user',
+            });
+            navigate("/login")
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -25,8 +73,10 @@ const SignupPage: React.FC = () => {
             <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-md">
                 <h2 className="text-2xl font-bold mb-6 text-center text-emerald-700">Create Account</h2>
 
+                {error && <p className="text-red-600 mb-3 text-sm">{error}</p>}
+                {success && <p className="text-green-600 mb-3 text-sm">{success}</p>}
+
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Full Name */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Full Name</label>
                         <input
@@ -39,7 +89,6 @@ const SignupPage: React.FC = () => {
                         />
                     </div>
 
-                    {/* Email */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Email</label>
                         <input
@@ -52,7 +101,6 @@ const SignupPage: React.FC = () => {
                         />
                     </div>
 
-                    {/* Password */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Password</label>
                         <input
@@ -65,7 +113,6 @@ const SignupPage: React.FC = () => {
                         />
                     </div>
 
-                    {/* Confirm Password */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Confirm Password</label>
                         <input
@@ -78,7 +125,6 @@ const SignupPage: React.FC = () => {
                         />
                     </div>
 
-                    {/* Role */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Role</label>
                         <select
@@ -93,12 +139,12 @@ const SignupPage: React.FC = () => {
                         </select>
                     </div>
 
-                    {/* Submit Button */}
                     <button
                         type="submit"
+                        disabled={loading}
                         className="w-full bg-emerald-600 text-white py-2 rounded-md hover:bg-emerald-700 transition"
                     >
-                        Sign Up
+                        {loading ? 'Signing up...' : 'Sign Up'}
                     </button>
                 </form>
             </div>

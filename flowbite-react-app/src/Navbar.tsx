@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { HiOutlineMenu } from 'react-icons/hi';
 import { useNavigate } from 'react-router-dom';
+import AppContext from './context'; // import context
 
 const IconBtn: React.FC<{ icon: string }> = ({ icon }) => (
     <button className="text-gray-500 hover:text-green-700 text-lg">{icon}</button>
@@ -31,12 +32,20 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active, className = '' }
 const UserNavbar: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const { user, setUser } = useContext(AppContext); // 👈 get user from context
     const navigate = useNavigate();
 
     const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
     const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
 
     const handleLoginClick = () => {
+        setDropdownOpen(false);
+        navigate('/login');
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        setUser(null); // Clear user from context
         setDropdownOpen(false);
         navigate('/login');
     };
@@ -79,14 +88,29 @@ const UserNavbar: React.FC = () => {
                             </button>
                             {dropdownOpen && (
                                 <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                                    <div className="px-4 py-2 text-sm text-gray-700 border-b">👤 Username</div>
-                                    <div className="px-4 py-2 text-sm text-gray-700 border-b">🛡️ Role</div>
-                                    <div
-                                        onClick={handleLoginClick}
-                                        className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
-                                    >
-                                        🔐 Login
-                                    </div>
+                                    {user ? (
+                                        <>
+                                            <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                                                👤 {user.fullName}
+                                            </div>
+                                            <div className="px-4 py-2 text-sm text-gray-700 border-b">
+                                                🛡️ {user.role}
+                                            </div>
+                                            <div
+                                                onClick={handleLogout}
+                                                className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                            >
+                                                🚪 Logout
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div
+                                            onClick={handleLoginClick}
+                                            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                                        >
+                                            🔐 Login
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

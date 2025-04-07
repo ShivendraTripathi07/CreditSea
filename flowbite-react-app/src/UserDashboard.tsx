@@ -1,58 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import LoanApplicationForm from './LoanApplicationForm';
+
+interface LoanApplication {
+    _id: string;
+    fullName: string;
+    loanAmount: number;
+    loanTenure: number;
+    employmentStatus: string;
+    reasonForLoan: string;
+    employmentAddress: string;
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+    status?: string; // Added this field as it will be set programmatically
+}
 
 const UserDashboard: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [loanApplications, setLoanApplications] = useState<LoanApplication[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const openForm = () => setIsModalOpen(true);
     const closeForm = () => setIsModalOpen(false);
 
-    const loanApplications = [
-        {
-            id: 1,
-            officerName: "John Okoth",
-            officerRole: "Financial Advisor",
-            amount: 50000.00,
-            amountText: "Personal Loan",
-            dateApplied: "June 09, 2021",
-            dateText: "10:23 AM",
-            status: "Pending"
-        },
-        {
-            id: 2,
-            officerName: "John Okoth",
-            officerRole: "Financial Advisor",
-            amount: 100000.00,
-            amountText: "Short Term Loan",
-            dateApplied: "June 07, 2021",
-            dateText: "2:30 PM",
-            status: "Verified"
-        },
-        {
-            id: 3,
-            officerName: "John Okoth",
-            officerRole: "Financial Advisor",
-            amount: 100000.00,
-            amountText: "Short Term Loan",
-            dateApplied: "June 07, 2021",
-            dateText: "9:15 AM",
-            status: "Rejected"
-        },
-        {
-            id: 4,
-            officerName: "John Okoth",
-            officerRole: "Financial Advisor",
-            amount: 100000.00,
-            amountText: "Home Loan Request",
-            dateApplied: "May 27, 2021",
-            dateText: "3:45 PM",
-            status: "Approved"
-        }
-    ];
+    useEffect(() => {
+        const fetchLoanApplications = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/user/applications');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch loan applications');
+                }
+                const data = await response.json();
+
+                // Adding status field to each application (for demonstration)
+                // In a real app, this would likely come from the backend
+                const statusOptions = ['Pending', 'Verified', 'Rejected', 'Approved'];
+                const processedData = data.map((app: LoanApplication, index: number) => ({
+                    ...app,
+                    status: statusOptions[index % statusOptions.length]
+                }));
+
+                setLoanApplications(processedData);
+            } catch (err) {
+                setError('Error fetching loan applications');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchLoanApplications();
+    }, []);
+
     const [searchTerm, setSearchTerm] = useState('');
 
     const filteredApplications = loanApplications.filter(app =>
-        app.amountText.toLowerCase().includes(searchTerm.toLowerCase())
+        app.reasonForLoan.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     // Function to get status badge styles
@@ -69,6 +73,19 @@ const UserDashboard: React.FC = () => {
             default:
                 return 'bg-gray-200 text-gray-800';
         }
+    };
+
+    // Format date function
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString);
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        return date.toLocaleDateString('en-US', options);
+    };
+
+    // Format time function
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
     return (
@@ -182,67 +199,77 @@ const UserDashboard: React.FC = () => {
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-white">
-                            <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Loan Officer
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Amount
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Date Applied
-                                </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Status
-                                </th>
-                                <th scope="col" className="relative px-6 py-3">
-                                    <span className="sr-only">Actions</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {loanApplications.map((application) => (
-                                <tr key={application.id} className="hover:bg-gray-50">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center">
-                                            <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
-                                                <span className="text-xs text-gray-600">JO</span>
-                                            </div>
-                                            <div>
-                                                <div className="font-medium text-gray-900">{application.officerName}</div>
-                                                <div className="text-sm text-gray-500">{application.officerRole}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="font-medium text-gray-900">{application.amount.toLocaleString()}.00</div>
-                                        <div className="text-sm text-gray-500">{application.amountText}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="font-medium text-gray-900">{application.dateApplied}</div>
-                                        <div className="text-sm text-gray-500">{application.dateText}</div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyles(application.status)}`}>
-                                            {application.status.toUpperCase()}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <button className="text-gray-500 hover:text-gray-700">
-                                            {/* Ellipsis Icon */}
-                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                                            </svg>
-                                        </button>
-                                    </td>
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                    </div>
+                ) : error ? (
+                    <div className="text-center py-8 text-red-500">{error}</div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-white">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Applicant
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Amount
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date Applied
+                                    </th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th scope="col" className="relative px-6 py-3">
+                                        <span className="sr-only">Actions</span>
+                                    </th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {filteredApplications.map((application) => (
+                                    <tr key={application._id} className="hover:bg-gray-50">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center">
+                                                <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center mr-3">
+                                                    <span className="text-xs text-gray-600">
+                                                        {application.fullName.split(' ').map(name => name[0]).join('')}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium text-gray-900">{application.fullName}</div>
+                                                    <div className="text-sm text-gray-500">{application.employmentStatus}</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="font-medium text-gray-900">{application.loanAmount.toLocaleString()}.00</div>
+                                            <div className="text-sm text-gray-500">{application.reasonForLoan}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="font-medium text-gray-900">{formatDate(application.createdAt)}</div>
+                                            <div className="text-sm text-gray-500">{formatTime(application.createdAt)}</div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusStyles(application.status || 'Pending')}`}>
+                                                {(application.status || 'PENDING').toUpperCase()}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button className="text-gray-500 hover:text-gray-700">
+                                                {/* Ellipsis Icon */}
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                                                </svg>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
