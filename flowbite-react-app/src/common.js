@@ -1,4 +1,4 @@
-const domain = "http://localhost:8000";
+const domain = "https://credit-sea-five.vercel.app/";
 
 const Api = {
   signUp: {
